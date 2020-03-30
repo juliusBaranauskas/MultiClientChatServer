@@ -54,7 +54,7 @@ int redirectors[MAX_CLIENTS]; // array of which clients have chosen to redirect 
 int client_socket[MAX_CLIENTS]; // socket descriptor of every connnected client
 pthread_mutex_t lock;
 pthread_mutex_t lockStdin;
-int amIMaster; // argv[1] 0/1 - First server launch using - './serverThreads 1' and second with './serverThreads 0'
+int amIMaster;
 int remoteServerSocket = -1;
 
 int main(int argc, char *argv[])
@@ -70,9 +70,6 @@ int main(int argc, char *argv[])
     struct sockaddr_in6 address6;
     char buffer[BUF_SIZE];
 
-    if (determineMaster(argv[1]) == -1)
-        return -1;
-
     if (pthread_mutex_init(&lock, NULL) != 0)
     {
         puts("mutex init has failed");
@@ -81,6 +78,20 @@ int main(int argc, char *argv[])
 
     //initialize all array elements to default values
     init_arrays();
+
+    // separating servers and determining the leading one
+    switch (fork())
+    {
+        case -1:
+            perror("fork failed");
+            return -1;
+        case 0:
+            amIMaster = FALSE;
+            break;
+        default:
+            amIMaster = TRUE;
+            break;
+    }
 
     // start a thread on which the remote server connection will be made
     pthread_t srvThreadId = MAX_CLIENTS + 1;
@@ -403,7 +414,11 @@ void removeClient(int index)
     pthread_mutex_unlock(&lock);
 }
 
-/**
+/** [DEPRECATED]
+ * 
+ * Currently not used since both servers are being launched from the same program
+ * with automatic master determining
+ * 
 * determines whether it is the server that needs to bind a socket and listen from remote server
 * or is it the second server and it needs to connect to the already launched first server
 * use './serverThreads 1' to launch as first one
