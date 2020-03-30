@@ -1,0 +1,7 @@
+*
+!/**/
+!*.*
+.vscode/
+.directory
+server.c
+TCPclient.c
